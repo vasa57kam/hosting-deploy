@@ -36,7 +36,8 @@ def create_service():
     if not auth(): return jsonify({"ok": False, "error": "bad token"}), 403
     d = request.get_json(silent=True) or {}
     kind = d.get("kind", "static")
-    if kind not in ("static",): return jsonify({"ok": False, "error": "kind must be static"}), 400
+    if kind not in ("static", "php", "python"):
+        return jsonify({"ok": False, "error": "kind must be static|php|python"}), 400
     conn = db()
     cur = conn.execute("INSERT INTO services (kind, name) VALUES (?, ?)", (kind, d.get("name") or f"site-{kind}"))
     sid = cur.lastrowid
@@ -44,13 +45,21 @@ def create_service():
     conn.execute("UPDATE services SET port=? WHERE id=?", (port, sid))
     conn.commit()
     conn.close()
-    vol = f"{BASE}/sites/{sid}"
+    vol = f"{BASE}/apps/{sid}" if kind == "python" else f"{BASE}/sites/{sid}"
     os.makedirs(vol, exist_ok=True)
-    cmd = ["docker", "run", "-d", f"--name=hs-{sid}", "--restart=unless-stopped",
-           "-v", f"{vol}:/usr/share/nginx/html:ro", "-p", f"127.0.0.1:{port}:80", "nginx:alpine"]
+    if kind == "static":
+        cmd = ["docker", "run", "-d", f"--name=hs-{sid}", "--restart=unless-stopped",
+               "-v", f"{vol}:/usr/share/nginx/html:ro", "-p", f"127.0.0.1:{port}:80", "nginx:alpine"]
+    elif kind == "php":
+        cmd = ["docker", "run", "-d", f"--name=hs-{sid}", "--restart=unless-stopped",
+               "-v", f"{vol}:/app", "-p", f"127.0.0.1:{port}:80", "webdevops/php-nginx:8.2-alpine"]
+    else:
+        cmd = ["docker", "run", "-d", f"--name=hs-{sid}", "--restart=unless-stopped",
+               "-v", f"{vol}:/app", "-p", f"127.0.0.1:{port}:8000", "python:3.11-slim",
+               "sh", "-c", "pip install -q -r /app/requirements.txt 2>/dev/null; exec python /app/server.py"]
     r = subprocess.run(cmd, capture_output=True, text=True)
     if r.returncode != 0: return jsonify({"ok": False, "error": r.stderr[:400]}), 500
-    return jsonify({"ok": True, "service_id": sid, "port": port, "volume": vol})
+    return jsonify({"ok": True, "service_id": sid, "port": port, "volume": vol, "kind": kind})
 
 @app.post("/attach_domain")
 def attach_domain():

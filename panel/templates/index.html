@@ -1,0 +1,24 @@
+{% extends "base.html" %}{% block title %}Сайты{% endblock %}
+{% block content %}
+<div class="card"><h1>Мои сайты</h1>
+{% if services %}<table><tr><th>№</th><th>Тип</th><th>Домены</th><th>Статус</th><th></th></tr>
+{% for s in services %}<tr><td>{{ s.id }}</td><td>{{ s.kind }}</td>
+<td>{% for d in s.domains %}<a class="ok" href="https://{{ d }}" target="_blank">{{ d }}</a><br>{% else %}<span class="mut">нет домена</span>{% endfor %}</td>
+<td>{% if s.status == 'active' %}<span class="ok">работает</span>{% else %}<span class="bad">пауза</span>{% endif %}</td>
+<td><a class="btn sec" href="/service/{{ s.id }}">Управление</a></td></tr>{% endfor %}</table>
+{% else %}<p class="mut">Сайтов пока нет — создай первый формой ниже.</p>{% endif %}</div>
+<div class="card"><h1>＋ Создать сайт</h1>
+<form method="post" action="/create" enctype="multipart/form-data" class="grid">
+<div><label>Тип сайта</label><select name="kind">
+<option value="static">HTML / статика</option>
+<option value="php">PHP 8.2 (index.php в корне zip)</option>
+<option value="python">Python (server.py :8000 + requirements.txt)</option>
+</select></div>
+<div><label>Домен (например my.hosts.itkam34.ru)</label><input name="domain" placeholder="домен или пусто"></div>
+<div><label>Zip с файлами сайта (можно позже)</label><input type="file" name="archive" accept=".zip"></div>
+<div><label style="display:flex;gap:8px"><input type="checkbox" name="force" style="width:auto"> DNS ещё не настроен</label>
+<button class="btn" type="submit">Создать и развернуть</button></div>
+</form>
+<p class="mut">PHP: клади index.php в корень zip. Домены: A-запись на IP этой VM; wildcard *.hosts.itkam34.ru работает сразу.</p>
+</div>
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends "base.html" %}{% block title %}Сайт #{{ sid }}{% endblock %}
+{% block content %}
+<div class="card"><h1>Сайт #{{ sid }} {% if svc %}· {{ svc.kind }}{% endif %}</h1>
+{% if created %}<p class="ok">Создан. {{ msg }}</p>{% elif msg %}<p class="bad">{{ msg }}</p>{% endif %}
+{% if svc and svc.domains %}<p>{% for d in svc.domains %}<a class="btn sec" href="https://{{ d }}" target="_blank">Открыть {{ d }}</a>{% endfor %}</p>{% endif %}
+<p>
+<form style="display:inline" method="post" action="/service/{{ sid }}/stop"><button class="btn warn" type="submit">Пауза</button></form>
+<form style="display:inline" method="post" action="/service/{{ sid }}/start"><button class="btn" type="submit">Старт</button></form>
+<form style="display:inline" method="post" action="/service/{{ sid }}/delete" onsubmit="return confirm('Удалить сайт безвозвратно?')"><button class="btn danger" type="submit">Удалить</button></form>
+</p></div>
+<div class="grid">
+<div class="card"><h3>Прикрепить домен</h3>
+<form method="post" action="/service/{{ sid }}/attach"><input name="domain" placeholder="domain.ru">
+<label style="display:flex;gap:8px"><input type="checkbox" name="force" style="width:auto"> DNS ещё не настроен</label>
+<button class="btn sec" type="submit">Прикрепить</button></form>
+<p class="mut">Не забудь добавить прокси-хост в Nginx Proxy Manager на эту VM (порт 80).</p></div>
+<div class="card"><h3>Залить файлы (zip)</h3>
+<form method="post" action="/service/{{ sid }}/upload" enctype="multipart/form-data"><input type="file" name="archive" accept=".zip">
+<button class="btn sec" type="submit">Распаковать в сайт</button></form>
+<p class="mut">static: index.html · php: index.php · python: server.py + requirements.txt</p></div>
+</div>
+<div class="card"><h3>Логи контейнера</h3><pre>{{ logs or 'логов пока нет' }}</pre></div>
+{% endblock %}

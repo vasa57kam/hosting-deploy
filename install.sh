@@ -38,5 +38,36 @@ UNIT
 systemctl daemon-reload
 systemctl enable --now caddy
 docker pull nginx:alpine >/dev/null
+docker pull webdevops/php-nginx:8.2-alpine >/dev/null
+docker pull python:3.11-slim >/dev/null
 bash bridge/install_bridge.sh
+if [ ! -f /opt/hosting/.panel_env ]; then
+  PPW=$(openssl rand -hex 10)
+  echo "PANEL_PASSWORD=$PPW" > /opt/hosting/.panel_env
+  chmod 600 /opt/hosting/.panel_env
+fi
+cat > /etc/systemd/system/hosting-panel.service <<'UNIT'
+[Unit]
+Description=Hosting Panel
+After=network.target hosting-bridge.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/hosting
+EnvironmentFile=/opt/hosting/.bridge_env
+EnvironmentFile=/opt/hosting/.panel_env
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/hosting/venv/bin
+ExecStart=/opt/hosting/venv/bin/python /opt/hosting/panel/panel_server.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+systemctl daemon-reload
+systemctl enable --now hosting-panel
+systemctl restart hosting-panel
+sleep 2
+echo "Панель: http://$(hostname -I | awk '{print $1}'):8097  пароль: $(grep PANEL_PASSWORD /opt/hosting/.panel_env | cut -d= -f2)"
 echo "== Готово. Мост: curl http://127.0.0.1:8098/ping =="
