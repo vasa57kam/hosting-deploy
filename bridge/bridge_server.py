@@ -25,7 +25,7 @@ def caddy_reload():
 
 def write_snippet(service_id, domain, port):
     with open(f"{SITES}/hs-{service_id}-{domain}.caddy", "w") as f:
-        f.write(f"{domain} {{\n\treverse_proxy 127.0.0.1:{port}\n}}\n")
+        f.write(f"http://{domain} {{\n\treverse_proxy 127.0.0.1:{port}\n}}\n")
 
 @app.get("/ping")
 def ping():
